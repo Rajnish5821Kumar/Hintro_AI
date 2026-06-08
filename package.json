@@ -101,7 +101,6 @@
         "statements": 80
       }
     },
-    "setupFilesAfterEach": [],
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/dist/"
