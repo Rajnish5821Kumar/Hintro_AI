@@ -22,7 +22,7 @@ router.get('/', (_req: Request, res: Response) => {
   res.status(200).json({
     candidateName: 'Rajnish Kumar',
     email: 'rk2452003@gmail.com',
-    repositoryUrl: 'https://github.com/rajnishkumar/meeting-intelligence-service',
+    repositoryUrl: 'https://github.com/Rajnish5821Kumar/Hintro_AI',
     deployedUrl: process.env.DEPLOYED_URL || '',
     externalIntegration: 'Telegram Bot API',
     features: [
