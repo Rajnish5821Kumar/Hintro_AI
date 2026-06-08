@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "name": "meeting-intelligence-service",
+  "builds": [
+    {
+      "src": "dist/server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "dist/server.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "buildCommand": "npm run build",
+  "installCommand": "npm install && npx prisma generate",
+  "framework": null
+}

@@ -1,0 +1,162 @@
+// ============================================================
+// Prisma Schema — Meeting Intelligence Service
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────
+
+enum ActionItemStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum DeliveryStatus {
+  SENT
+  FAILED
+  PENDING
+}
+
+// ─────────────────────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────────────────────
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  meetings     Meeting[]
+
+  @@index([email])
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────────
+// MEETING
+// ─────────────────────────────────────────────────────────────
+
+model Meeting {
+  id           String    @id @default(cuid())
+  title        String
+  participants String[]  // Array of participant names
+  meetingDate  DateTime
+  createdById  String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  createdBy    User          @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  transcripts  Transcript[]
+  analysis     Analysis?
+  actionItems  ActionItem[]
+
+  @@index([createdById])
+  @@index([meetingDate])
+  @@index([createdAt])
+  @@map("meetings")
+}
+
+// ─────────────────────────────────────────────────────────────
+// TRANSCRIPT
+// ─────────────────────────────────────────────────────────────
+
+model Transcript {
+  id        String   @id @default(cuid())
+  meetingId String
+  speaker   String
+  text      String   @db.Text
+  timestamp String   // e.g. "00:10", "01:32"
+  sequence  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@index([meetingId, sequence])
+  @@map("transcripts")
+}
+
+// ─────────────────────────────────────────────────────────────
+// ANALYSIS
+// ─────────────────────────────────────────────────────────────
+
+model Analysis {
+  id                  String   @id @default(cuid())
+  meetingId           String   @unique
+  summary             Json     // Array of {text, citations[]}
+  actionItems         Json     // Extracted from AI (raw AI output)
+  decisions           Json     // Array of {text, citations[]}
+  followUpSuggestions Json     // Array of {text, citations[]}
+  rawResponse         String   @db.Text
+  modelUsed           String
+  promptTokens        Int?
+  completionTokens    Int?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  meeting             Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@map("analyses")
+}
+
+// ─────────────────────────────────────────────────────────────
+// ACTION ITEM
+// ─────────────────────────────────────────────────────────────
+
+model ActionItem {
+  id            String           @id @default(cuid())
+  task          String
+  assignee      String
+  dueDate       DateTime
+  status        ActionItemStatus @default(PENDING)
+  meetingId     String
+  telegramChatId String?         // Optional: override chat ID for this assignee
+  reminderCount Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  meeting         Meeting           @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  reminderHistory ReminderHistory[]
+
+  @@index([meetingId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([assignee])
+  @@index([status, dueDate])
+  @@map("action_items")
+}
+
+// ─────────────────────────────────────────────────────────────
+// REMINDER HISTORY
+// ─────────────────────────────────────────────────────────────
+
+model ReminderHistory {
+  id             String         @id @default(cuid())
+  actionItemId   String
+  sentAt         DateTime       @default(now())
+  deliveryStatus DeliveryStatus @default(PENDING)
+  provider       String         @default("telegram")
+  errorMessage   String?
+  createdAt      DateTime       @default(now())
+
+  actionItem     ActionItem     @relation(fields: [actionItemId], references: [id], onDelete: Cascade)
+
+  @@index([actionItemId])
+  @@index([sentAt])
+  @@index([deliveryStatus])
+  @@map("reminder_histories")
+}

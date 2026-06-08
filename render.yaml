@@ -1,0 +1,67 @@
+# render.yaml — Render.com Deployment Configuration
+# https://render.com/docs/infrastructure-as-code
+
+services:
+  # ── Web Service ───────────────────────────────────────────────
+  - type: web
+    name: meeting-intelligence-service
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: |
+      npm ci &&
+      npx prisma generate &&
+      npm run build
+    startCommand: |
+      npx prisma migrate deploy &&
+      node dist/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: meeting-intelligence-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: GEMINI_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false  # Set manually in Render dashboard
+      - key: TELEGRAM_CHAT_ID
+        sync: false  # Set manually in Render dashboard
+      - key: BCRYPT_SALT_ROUNDS
+        value: "12"
+      - key: LOG_LEVEL
+        value: info
+      - key: REMINDER_CRON_SCHEDULE
+        value: "0 * * * *"
+      - key: REMINDER_JOB_ENABLED
+        value: "true"
+      - key: REDIS_URL
+        fromService:
+          name: meeting-intelligence-redis
+          type: redis
+          property: connectionString
+
+  # ── Redis ─────────────────────────────────────────────────────
+  - type: redis
+    name: meeting-intelligence-redis
+    region: singapore
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  # ── PostgreSQL ────────────────────────────────────────────────
+  - name: meeting-intelligence-db
+    region: singapore
+    plan: free
+    databaseName: meeting_intelligence
+    user: meeting_user
