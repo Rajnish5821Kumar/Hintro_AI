@@ -6,14 +6,16 @@
       "src": "api/index.ts",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["src/**", "prisma/**"]
+        "includeFiles": ["src/**", "prisma/**"],
+        "maxDuration": 30
       }
     },
     {
       "src": "api/cron/reminders.ts",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["src/**", "prisma/**"]
+        "includeFiles": ["src/**", "prisma/**"],
+        "maxDuration": 60
       }
     }
   ],
@@ -35,13 +37,5 @@
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "api/index.ts": {
-      "maxDuration": 30
-    },
-    "api/cron/reminders.ts": {
-      "maxDuration": 60
-    }
   }
 }
